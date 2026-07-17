@@ -36,7 +36,7 @@ def generate_medical_questions(text_content, key, count):
         "**Explanation:** [Detailed paragraph breaking down why the choice is right and others are wrong.]\n"
         "--------------------------------------------------\n"
     )
-    model = genai.GenerativeModel(model_name="gemini-2.5-flash", system_instruction=system_instruction)
+    model = genai.GenerativeModel(model_name="gemini-3.5-flash", system_instruction=system_instruction)
     truncated_text = text_content[:40000] 
     prompt = f"Generate exactly {count} high-yield multiple-choice questions based on this medical text:\n\n{truncated_text}"
     response = model.generate_content(prompt)
