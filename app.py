@@ -2,16 +2,16 @@ import streamlit as st
 import pypdf
 import google.generativeai as genai
 
-# Page settings
-st.set_page_config(page_title="MedExam Generator", page_icon="🏥")
-st.title("🏥 High-Yield Med School Question Generator")
-st.write("Upload a lecture PDF to generate USMLE-style questions.")
+# Page settings optimized for flashcard viewing
+st.set_page_config(page_title="Oral Exam Flashcard Gen", page_icon="🪞", layout="centered")
+st.title("🪞 Oral Exam Active Recall Generator")
+st.write("Convert medical PDFs into high-yield, short-answer flashcards specifically tailored for oral examination drills.")
 
 # Sidebar setup for security
 st.sidebar.header("🔑 API Setup")
-st.sidebar.markdown("[Get a free Gemini API key here](https://google.com)")
+st.sidebar.markdown("[Get a free Gemini API key here](https://aistudio.google.com/)")
 api_key = st.sidebar.text_input("Enter your Gemini API Key:", type="password")
-num_questions = st.sidebar.slider("Number of questions to generate", min_value=3, max_value=15, value=5)
+num_cards = st.sidebar.slider("Number of flashcards to generate", min_value=5, max_value=25, value=10)
 
 def extract_pdf_text(uploaded_file):
     reader = pypdf.PdfReader(uploaded_file)
@@ -20,49 +20,53 @@ def extract_pdf_text(uploaded_file):
         text += page.extract_text() + "\n"
     return text
 
-def generate_medical_questions(text_content, key, count):
+def generate_oral_flashcards(text_content, key, count):
     genai.configure(api_key=key)
+    
+    # System prompt explicitly engineered for fast oral-recall answers
     system_instruction = (
-        "You are an expert medical school professor and USMLE board examiner. "
-        "Your task is to generate high-yield, 4-option multiple-choice questions based on the provided text.\n\n"
-        "Format every single question exactly like this example:\n"
-        "### Question X\n"
-        "[Insert clinical vignette here]\n"
-        "A) Option A\n"
-        "B) Option B\n"
-        "C) Option C\n"
-        "D) Option D\n\n"
-        "**Correct Answer:** [Letter]\n"
-        "**Explanation:** [Detailed paragraph breaking down why the choice is right and others are wrong.]\n"
+        "You are an expert medical school professor testing students via an oral examination viva. "
+        "Your task is to extract high-yield medical facts from the text and format them into brief, "
+        "direct question-and-answer flashcards optimized for fast mental recall.\n\n"
+        "Rules for the Flashcards:\n"
+        "1. The Front (Question) must be a direct prompt or brief clinical sign. Never include choices like A, B, C, D.\n"
+        "2. The Back (Answer) must be clear, concise, and answerable aloud in 5-10 seconds. Focus on the single gold-standard diagnostic tool, first-line medication, specific pathway mutation, or absolute pathognomonic sign.\n\n"
+        "Format every single card exactly like this example:\n"
+        "### CARD X\n"
+        "**FRONT (Question):** [Insert direct query here, e.g., What is the first-line medication for acute status epilepticus?]\n"
+        "**BACK (Answer):** [Insert short answer here, e.g., IV Lorazepam (Ativan).]\n"
         "--------------------------------------------------\n"
     )
+    
     model = genai.GenerativeModel(model_name="gemini-3.5-flash", system_instruction=system_instruction)
     truncated_text = text_content[:40000] 
-    prompt = f"Generate exactly {count} high-yield multiple-choice questions based on this medical text:\n\n{truncated_text}"
+    prompt = f"Generate exactly {count} direct Q&A oral exam flashcards based on this medical text:\n\n{truncated_text}"
     response = model.generate_content(prompt)
     return response.text
 
-# Main website area
-uploaded_file = st.file_uploader("📂 Choose a medical PDF file", type=["pdf"])
+# Main interface
+uploaded_file = st.file_uploader("📂 Choose a medical lecture PDF", type=["pdf"])
 
 if uploaded_file and not api_key:
     st.info("💡 Please enter your Gemini API key in the sidebar to start generating.")
 
 if uploaded_file and api_key:
-    if st.button("🧠 Generate Questions", type="primary"):
-        with st.spinner("Analyzing PDF and drafting clinical vignettes..."):
+    if st.button("🧠 Create Flashcards", type="primary"):
+        with st.spinner("Analyzing text and creating rapid-fire oral flashcards..."):
             try:
                 raw_text = extract_pdf_text(uploaded_file)
-                questions_output = generate_medical_questions(raw_text, api_key, num_questions)
-                st.success(f"🎉 Generated {num_questions} questions successfully!")
+                flashcards_output = generate_oral_flashcards(raw_text, api_key, num_cards)
+                st.success(f"🎉 Created {num_cards} flashcards successfully!")
                 
+                # Download button for printing or archiving
                 st.download_button(
-                    label="📥 Download Questions (.txt)",
-                    data=questions_output,
-                    file_name="Medical_Exam_Questions.txt",
+                    label="📥 Download Flashcards (.txt)",
+                    data=flashcards_output,
+                    file_name="Medical_Oral_Flashcards.txt",
                     mime="text/plain"
                 )
                 st.markdown("---")
-                st.markdown(questions_output)
+                st.markdown(flashcards_output)
             except Exception as e:
                 st.error(f"❌ An error occurred: {str(e)}")
+
